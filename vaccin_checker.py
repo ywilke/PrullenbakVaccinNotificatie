@@ -281,8 +281,8 @@ def process_changes(avail_state, now_avail):
             now_avail[locatie_id]["id"] = locatie_id
             new_locs.append(now_avail[locatie_id])
             write_log(f"{locatie_id} became available")
-            
-    for locatie_id in avail_state: # remove available locations from state that are no longer available
+    
+    for locatie_id in list(avail_state): # remove available locations from state that are no longer available
         if locatie_id not in now_avail:
             avail_state.remove(locatie_id)
             write_log(f"{locatie_id} became unavailable")
