@@ -256,7 +256,7 @@ def notify_users(loc, context):
             if remaining > 0:
                 time.sleep(remaining) #variable sleep time per mail service
         except Exception as E:
-            write_log(f"Exception while sending mail, update redis: {E}", is_error=True)
+            write_log(f"Exception while sending mail to {entry[0]}, update redis: {E}", is_error=True)
     write_log("emails for location send")
 
 
