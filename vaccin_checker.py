@@ -42,6 +42,10 @@ def parse_site():
     postcode_regex = "[\d]{4}( |)[A-Za-z]{2} "
     now_avail = {}
     
+    day_hour = datetime.datetime.now().hour
+    if  (day_hour < 5 or day_hour > 22) and test_run == False: # Dont scan between 23:00 and 05:00
+        return now_avail
+    
     r = requests.get("https://www.prullenbakvaccin.nl/")
     
     if test_run == True:
