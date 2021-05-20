@@ -39,7 +39,7 @@ def log_var(var):
 
 
 def parse_site():
-    postcode_regex = "[\d]{4}( |)[A-Za-z]{2}( |)"
+    postcode_regex = "[\d]{4}( |)[A-Za-z]{2} "
     now_avail = {}
     
     r = requests.get("https://www.prullenbakvaccin.nl/")

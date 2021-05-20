@@ -88,6 +88,8 @@ def postcode_coordinate(postcode):
         elif i == 2:
             write_log("postcode API call failed after 2 retries", is_error=True)
             return None
+        elif "Geen resultaat." in resp:
+            return None
         else:
             write_log(f"postcode API call for {postcode} failed with: {resp}", is_error=True)
             time.sleep(1)
