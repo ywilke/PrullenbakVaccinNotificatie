@@ -58,7 +58,6 @@ def parse_site():
     soup = BeautifulSoup(r.content, "html.parser")
     soup = soup.find("div", attrs={"id": "locations-container"})
     if not soup:
-        write_log("No available locations")
         return {} # No available locations
     soup = soup.find_all("div", attrs={"class": "card mb-2"})
     if not soup:
@@ -330,7 +329,7 @@ MS = {"sendinblue": {"smtp": "smtp-relay.sendinblue.com", "port": 587, "user": o
 # Setup vars
 from_address = "pullenbakvaccin-melding-no-reply@wilke.sh"
 db_file = "vaccin_users.db"
-wait_time = 120 # sec
+wait_time = 60 # sec
 max_per_loc = 50
 
 # Testings vars

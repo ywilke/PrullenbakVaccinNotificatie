@@ -100,7 +100,6 @@ def postcode_coordinate(postcode):
 
     
 def add_email(postcode, email, max_dist, token, akkoord, conn):
-    return "Inschrijven is niet meer mogelijk voor een onbepaalde tijd."
     # Validate postcode and email
     if akkoord != "akkoord":
         return "Ga akkoord met de voorwaarden."
@@ -124,7 +123,7 @@ def add_email(postcode, email, max_dist, token, akkoord, conn):
     except Exception as e:
         write_log(f"Exception while inserting email: {e}", is_error=True)
         return "Iets ging mis. Probeer het opnieuw."
-    return True
+    return "Inschrijven is niet meer mogelijk." #TODO change to try if allowed
 
 
 # Setup vars
@@ -153,6 +152,7 @@ def root_page():
 def static_from_root():
     return send_from_directory(app.static_folder, request.path[1:])
 
+
 @app.route('/RestVaccin_Notificatie/aanmelden', methods=['POST', 'GET'])
 def signup_page():
     ip = get_ip()
@@ -169,14 +169,15 @@ def signup_page():
     token = secrets.randbelow(10**9) # Token to unsubscribe
     
     inserted = add_email(postcode, email, max_m, token, akkoord, conn)
-    if inserted != True:
+    if inserted != "Inschrijven is niet meer mogelijk.": #TODO change to
         return render_template('sign_up.html', postcode=postcode, email=email, error=inserted)
-    elif inserted == True:
+    else:
         postcode = valid_postcode(postcode)
         write_log("New user signed-up")
         unix_time = int(time.time())
         log_new_user(unix_time, postcode, ip, email, token)
-        return render_template('sign_up.html', postcode=postcode, email=email, success=True)
+        #return render_template('sign_up.html', postcode=postcode, email=email, success=True)
+        return render_template('sign_up.html', postcode=postcode, email=email, error=inserted)
 
 
 @app.route('/PrullenbakVaccin/unsub', methods=['GET'])
