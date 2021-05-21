@@ -8,7 +8,7 @@ import datetime
 import requests
 from validate_email import validate_email
 
-from flask import render_template, request, abort, redirect
+from flask import render_template, request, abort, redirect, send_from_directory
 from flask_recaptcha import ReCaptcha
 
 from app import app
@@ -99,8 +99,10 @@ def postcode_coordinate(postcode):
     return {"lat": lat, "long": long}
 
     
-def add_email(postcode, email, max_dist, token, conn):
+def add_email(postcode, email, max_dist, token, akkoord, conn):
     # Validate postcode and email
+    if akkoord != "akkoord":
+        return "Ga akkoord met de voorwaarden."
     postcode = valid_postcode(postcode)
     
     if postcode == False:
@@ -140,11 +142,17 @@ create_table(db_file)
 
 # Routing
 @app.route('/', methods=['GET'])
+@app.route('/PrullenbakVaccin/aanmelden', methods=['GET'])
 def root_page():
-    return redirect("/PrullenbakVaccin/aanmelden")
+    return redirect("/RestVaccin_Notificatie/aanmelden")
 
 
-@app.route('/PrullenbakVaccin/aanmelden', methods=['POST', 'GET'])
+@app.route('/voorwaarden.txt')
+@app.route('/privacy_statement.txt')
+def static_from_root():
+    return send_from_directory(app.static_folder, request.path[1:])
+
+@app.route('/RestVaccin_Notificatie/aanmelden', methods=['POST', 'GET'])
 def signup_page():
     ip = get_ip()
     if request.method == 'GET':
@@ -152,13 +160,14 @@ def signup_page():
     postcode = request.form["postcode"]
     email = request.form["email"]
     max_dist = request.form["max_dist"]
+    akkoord = request.form.get("akkoord", None)
     try: # verify max_dist var and transform to meters
         max_m = dist_dict[max_dist]
     except KeyError:
         max_m = 10000
     token = secrets.randbelow(10**9) # Token to unsubscribe
     
-    inserted = add_email(postcode, email, max_m, token, conn)
+    inserted = add_email(postcode, email, max_m, token, akkoord, conn)
     if inserted != True:
         return render_template('sign_up.html', postcode=postcode, email=email, error=inserted)
     elif inserted == True:
