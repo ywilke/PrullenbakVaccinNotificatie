@@ -100,6 +100,7 @@ def postcode_coordinate(postcode):
 
     
 def add_email(postcode, email, max_dist, token, akkoord, conn):
+    return "Inschrijven is niet meer mogelijk voor een onbepaalde tijd."
     # Validate postcode and email
     if akkoord != "akkoord":
         return "Ga akkoord met de voorwaarden."
