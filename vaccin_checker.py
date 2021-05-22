@@ -13,6 +13,9 @@ import redis
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.firefox.options import Options
 
 
 def timestamp():
@@ -25,6 +28,7 @@ def write_log(message, also_print=True, is_error = False):
     with open('logs/checker_debug.log','a') as debug_f:
         debug_f.write(f"[{timestamp()}] {message}\n")
     if is_error == True:
+        _ = requests.get("https://hc-ping.com/5b105b06-c003-4ff5-b8ff-b84c21684d84/fail", timeout=10) # Report error
         with open('logs/checker_error.log','a') as debug_f:
             debug_f.write(f"[{timestamp()}] {message}\n")
     if also_print == True:
@@ -38,31 +42,42 @@ def log_var(var):
     pickle.dump(var, open(fname, "wb"))
 
 
-def parse_site():
+def compare_time(time_html):
+    refresh_time = time_html.split("\n")[0].rsplit(" ", 1)[1]
+    refresh_time = datetime.datetime.strptime(refresh_time, '%H:%M:%S')
+    refresh_time = refresh_time.time()
+    d = datetime.date.today()
+    refresh_date = datetime.datetime.combine(d, refresh_time)
+    now = datetime.datetime.now()
+    difference = now - refresh_date
+    if difference.total_seconds() > 120:
+        write_log(f"Webpage seems stale. Last refresh: {refresh_date}", is_error=True)
+        return False
+    else:
+        return True
+
+
+def parse_site(driver):
     postcode_regex = "[\d]{4}( |)[A-Za-z]{2} "
     now_avail = {}
     
     day_hour = datetime.datetime.now().hour
     if  (day_hour < 5 or day_hour > 22) and test_run == False: # Dont scan between 23:00 and 05:00
         return now_avail
-    
-    r = requests.get("https://www.prullenbakvaccin.nl/")
-    
-    if test_run == True:
-        r = pickle.load(open("debug/test_pos_1.p", "rb"))
-    
-    if r.status_code != 200:
-        write_log(f"Parser status code was {r.status_code}", is_error=True)
-        log_var(r)
-        return {}
-    soup = BeautifulSoup(r.content, "html.parser")
-    soup = soup.find("div", attrs={"id": "locations-container"})
-    if not soup:
-        return {} # No available locations
+
+    try:
+        time_html = driver.find_element_by_xpath("//div[@id='locations']/p").get_attribute("innerHTML")
+        recent = compare_time(time_html)
+        if not recent:
+            driver.get('https://www.prullenbakvaccin.nl/') # refresh the page
+        location_html = driver.find_element_by_xpath("//div[@id='locations-container']").get_attribute("outerHTML")
+    except NoSuchElementException:
+        return {} # No locations available
+    soup = BeautifulSoup(location_html, "html.parser")  
     soup = soup.find_all("div", attrs={"class": "card mb-2"})
     if not soup:
         write_log("Available location but no html card found", is_error=True)
-        log_var(r)
+        log_var(location_html)
         return {}
     
     for elem in soup: # Loop over all doctors now available
@@ -300,12 +315,17 @@ def main():
     # Setup TLS for email
     context = ssl.create_default_context()
     _ = login_mail_servers(context, is_test = True)
+    # Setup browser
+    opts = Options()
+    opts.headless = True
+    driver = webdriver.Firefox(options=opts)
+    driver.get('https://www.prullenbakvaccin.nl/')
     
     # Check for changes in loop
     avail_state = set()
     while True:
         start_time = datetime.datetime.now() # Log start time
-        now_avail = parse_site()
+        now_avail = parse_site(driver)
         avail_state, new_locs = process_changes(avail_state, now_avail)
         new_locs = find_nearby_email(new_locs)
         for loc in new_locs:
