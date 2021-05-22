@@ -50,7 +50,7 @@ def compare_time(time_html):
     refresh_date = datetime.datetime.combine(d, refresh_time)
     now = datetime.datetime.now()
     difference = now - refresh_date
-    if difference.total_seconds() > 120:
+    if difference.total_seconds() > 150:
         write_log(f"Webpage seems stale. Last refresh: {refresh_date}", is_error=True)
         return False
     else:
