@@ -14,8 +14,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.firefox.options import Options
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 
 
 def timestamp():
@@ -50,7 +49,7 @@ def compare_time(time_html):
     refresh_date = datetime.datetime.combine(d, refresh_time)
     now = datetime.datetime.now()
     difference = now - refresh_date
-    if difference.total_seconds() > 150:
+    if difference.total_seconds() > 120:
         write_log(f"Webpage seems stale. Last refresh: {refresh_date}", is_error=True)
         return False
     else:
@@ -64,15 +63,26 @@ def parse_site(driver):
     day_hour = datetime.datetime.now().hour
     if  (day_hour < 5 or day_hour > 22) and test_run == False: # Dont scan between 23:00 and 05:00
         return now_avail
-
-    try:
+    
+    try: # Get refresh time
         time_html = driver.find_element_by_xpath("//div[@id='locations']/p").get_attribute("innerHTML")
         recent = compare_time(time_html)
         if not recent:
+            write_log("Refreshing page.")
             driver.get('https://www.prullenbakvaccin.nl/') # refresh the page
+        
+    except (NoSuchElementException, StaleElementReferenceException) as e:
+        write_log(f"Exception while getting refresh time: {e}", is_error=True)
+        return {}
+    
+    try: # Get available locations
         location_html = driver.find_element_by_xpath("//div[@id='locations-container']").get_attribute("outerHTML")
     except NoSuchElementException:
-        return {} # No locations available
+        return {} # No available locations
+    except StaleElementReferenceException as e:
+        write_log(f"Exception stale element: {e}")
+        return {}
+        
     soup = BeautifulSoup(location_html, "html.parser")  
     soup = soup.find_all("div", attrs={"class": "card mb-2"})
     if not soup:
@@ -316,9 +326,11 @@ def main():
     context = ssl.create_default_context()
     _ = login_mail_servers(context, is_test = True)
     # Setup browser
-    opts = Options()
-    opts.headless = True
-    driver = webdriver.Firefox(options=opts)
+    options = webdriver.ChromeOptions()
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36")
+    options.headless = True
+    driver = webdriver.Chrome(options=options)
     driver.get('https://www.prullenbakvaccin.nl/')
     
     # Check for changes in loop
