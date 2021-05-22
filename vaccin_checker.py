@@ -349,7 +349,7 @@ MS = {"sendinblue": {"smtp": "smtp-relay.sendinblue.com", "port": 587, "user": o
 # Setup vars
 from_address = "pullenbakvaccin-melding-no-reply@wilke.sh"
 db_file = "vaccin_users.db"
-wait_time = 60 # sec
+wait_time = 30 # sec
 max_per_loc = 50
 
 # Testings vars
