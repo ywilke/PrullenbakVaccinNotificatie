@@ -96,11 +96,10 @@ def parse_site(driver):
             write_log("locatie_id could not be found in html card", is_error=True)
             log_var(elem)
             return {}
-        locatie_text = str(elem.find("p", attrs={"class": "card-text"}))
-        match = re.search(postcode_regex, locatie_text)
+        match = re.search(postcode_regex, str(elem))
         if not match:
             write_log("postcode could not be found in html card", is_error=True)
-            log_var(locatie_text)
+            log_var(elem)
             return {}
         postcode = match.group(0)
         postcode = postcode.replace(" ", "").upper()
